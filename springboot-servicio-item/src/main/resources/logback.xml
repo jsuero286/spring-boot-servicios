@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+    <!-- Include in spring boot projects -->
+
+    <!-- Define log format -->
+    <property name="CONSOLE_LOG_PATTERN"
+        value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][%5p][%t][${APP_POD_NAME:-${instance:-#}}][%X{X-B3-TraceId:-#}] \\(%F:%L\\) - %msg%n" />
+    <property name="FILE_LOG_PATTERN"
+        value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][%5p][%t][${APP_POD_NAME:-${instance:-#}}][%X{X-B3-TraceId:-}] \\(%F:%L\\) - %msg%n" />
+    <property name="GELF_LOG_PATTERN"
+        value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][%5p][%t][${APP_POD_NAME:-${instance:-#}}][%X{X-B3-TraceId:-}] \\(%F:%L\\) - %msg%n" />
+
+    <!-- Reduce nivel de log en paquetes de terceros -->
+    <logger name="feign" level="WARN" />
+    <logger name="com.netflix" level="WARN" />
+    <logger name="springfox.documentation" level="WARN" />
+    <logger name="org.dozer" level="WARN" />
+
+    <!-- define application log file location -->
+    <property name="LOG_FILE"
+        value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}/}application/application.log}" />
+
+    <!-- defines an appender for CONSOLE output -->
+    <appender name="CONSOLE"
+        class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+    <appender name="ASYNC-CONSOLE"
+        class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="CONSOLE" />
+    </appender>
+
+    <!-- defines an appender for application log output -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_FILE}</file>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <appender name="ASYNC-FILE"
+        class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="FILE" />
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+    <jmxConfigurator />
+
+
+
+    <!-- defines appender for graylog on pre and pro environments -->
+    <springProfile name="pre, pro">
+        <appender name="GELF-UDP-APPENDER"
+            class="com.viajeseci.common.log.UdpAppender">
+            <graylogHost>${GRAYLOG_HOST}</graylogHost>
+            <graylogPort>${GRAYLOG_PORT}</graylogPort>
+            <maxChunkSize>60000</maxChunkSize>
+            <useCompression>true</useCompression>
+            <layout class="com.viajeseci.common.log.LogLayout">
+                <originHost>"${APP_POD_NAME:-${instance:-#}}"</originHost>
+                <includeRawMessage>false</includeRawMessage>
+                <includeRootCauseData>true</includeRootCauseData>
+                <includeCallerData>true</includeCallerData>
+                <includeLevelName>true</includeLevelName>
+                <shortPatternLayout
+                    class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>${GELF_LOG_PATTERN}</pattern>
+                </shortPatternLayout>
+                <fullPatternLayout
+                    class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>${GELF_LOG_PATTERN}</pattern>
+                </fullPatternLayout>
+                <staticField>host:${APP_POD_NAME:-${instance:-#}}</staticField>
+                <staticField>environment:${spring.profiles.active}</staticField>
+                <staticField>type:midcatalog</staticField>
+            </layout>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="GELF-UDP-APPENDER" />
+        </root>
+    </springProfile>
+</configuration>
