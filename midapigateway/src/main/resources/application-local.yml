@@ -39,7 +39,7 @@ spring:
   zipkin:
     base-url: http://192.168.0.110:9411/
 
-  rabbitmq:
+  kafka:
     host: 192.168.0.110
 
   sleuth:
